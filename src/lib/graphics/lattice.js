@@ -1,36 +1,55 @@
-// lattice.js — geometry for the 3D tower of theta zero-lattices.
+// lattice.js — geometry for the 3D scale-tower of the theta function.
 //
-// At the hexagonal modular point τ = e^{iπ/3} the zeros of θ(z, τ) form a
-// hexagonal lattice in the z-plane. Level-n theta functions (an L²-orthogonal
-// tower) carry n zeros per cell, so their zero grid packs ~√n tighter. We stack
-// levels 1..N up the vertical axis, each a hexagonal grid over the flat z-plane.
+// Each horizontal slice at height t shows θ(λz, τ; a, b) with λ = e^{rate·t}.
+// A zero of that slice sits where λz equals a zero of θ[a,b](·,τ), i.e. at
+//   z = ζ(m,n) / λ,   ζ(m,n) = ½(1+τ) − aτ − b + m + nτ   (m,n ∈ ℤ).
+// So as we climb, every zero slides along the ray toward the origin — the
+// zeros trace converging curves (the "line bundles") threaded through the stack.
 
-const E1 = [1.0, 0.0]; // hexagonal lattice basis
-const E2 = [0.5, Math.sqrt(3) / 2];
-
-// Returns { data: Float32Array of vec4 (x, y, z, t) per zero, count }.
-//  x,z — position in the z-plane basis; y — tower height; t — level in [0,1].
-export function buildTower({ levels = 5, radius = 3.2, gap = 0.62, base = 1.0 } = {}) {
-	const points = [];
-	for (let k = 1; k <= levels; k++) {
-		const spacing = base / Math.sqrt(k); // finer grid the higher we go
-		const y = (k - 1) * gap;
-		const t = levels > 1 ? (k - 1) / (levels - 1) : 0;
-		const range = Math.ceil(radius / spacing) + 1;
-		for (let m = -range; m <= range; m++) {
-			for (let n = -range; n <= range; n++) {
-				const x = spacing * (m * E1[0] + n * E2[0]);
-				const z = spacing * (m * E1[1] + n * E2[1]);
-				if (x * x + z * z <= radius * radius) points.push(x, y, z, t);
-			}
-		}
+// Slices from −slices..+slices with their height and scale λ.
+export function towerSlices({ slices, gap, rate }) {
+	const out = [];
+	for (let i = -slices; i <= slices; i++) {
+		const t = i * gap;
+		out.push({ i, y: t, lambda: Math.exp(rate * t), tnorm: (i + slices) / (2 * slices || 1) });
 	}
-	const data = new Float32Array(points);
-	return { data, count: points.length / 4 };
+	return out;
 }
 
-// Unit quad corners (two triangles) used to billboard each zero.
-export const QUAD = new Float32Array([
-	-1, -1, 1, -1, 1, 1,
-	-1, -1, 1, 1, -1, 1
-]);
+// Line-list geometry (vec4 x,y,z,tnorm per vertex) for the zero threads.
+export function buildThreads({ slices, gap, rate, tauRe, tauIm, a, b, centerRe, centerIm, scale }) {
+	const S = towerSlices({ slices, gap, rate });
+	const half = scale * 1.15; // keep threads within the plane footprint
+	const inView = (x, z) => Math.abs(x - centerRe) <= half && Math.abs(z - centerIm) <= half;
+
+	// zero of θ[a,b] in the base cell, plus a lattice range wide enough to fill view
+	const zx0 = 0.5 * (1 + tauRe) - a * tauRe - b;
+	const zy0 = 0.5 * tauIm - a * tauIm;
+	const reach = Math.ceil((half * Math.exp(rate * slices * gap)) / Math.max(0.25, tauIm)) + 3;
+	const M = Math.min(reach, 60);
+
+	const verts = [];
+	for (let m = -M; m <= M; m++) {
+		for (let n = -M; n <= M; n++) {
+			const zx = zx0 + m + n * tauRe;
+			const zy = zy0 + n * tauIm;
+			// walk the slices, emitting a segment wherever both ends are in view
+			for (let k = 0; k < S.length - 1; k++) {
+				const A = S[k];
+				const B = S[k + 1];
+				const ax = zx / A.lambda;
+				const az = zy / A.lambda;
+				const bx = zx / B.lambda;
+				const bz = zy / B.lambda;
+				if (inView(ax, az) && inView(bx, bz)) {
+					verts.push(ax, A.y, az, A.tnorm, bx, B.y, bz, B.tnorm);
+				}
+			}
+		}
+		if (verts.length > 240000) break; // hard cap
+	}
+	return { data: new Float32Array(verts), count: verts.length / 4 };
+}
+
+// Unit quad corners (two triangles) for a slice billboard/plane.
+export const QUAD = new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]);

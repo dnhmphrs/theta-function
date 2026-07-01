@@ -21,11 +21,16 @@ export const thetaParams = writable({
 	mouseTau: true // when true the mouse drives τ live
 });
 
-// 3D tower of theta zero-lattices
+// 3D tower — the same θ swept in scale (λ = e^t) up the vertical axis.
+// The four variables (z-view, τ, a, b) live in thetaParams above and drive
+// every slice; these are just the tower's display options.
 export const towerParams = writable({
-	levels: 5, // number of stacked hexagonal grids
-	pointSize: 0.03, // billboard half-size
-	spin: true // slow idle rotation
+	slices: 4, // planes above centre (mirrored below)
+	gap: 0.55, // vertical spacing between slices
+	rate: 0.9, // how fast the scale λ grows per unit height
+	planes: true, // domain-coloured complex plane on each slice
+	contours: true, // |θ| / phase contour lines on the planes
+	threads: true // zero curves threading between the planes
 });
 
 // camera zoom (shared with the orbit controller)

@@ -1,24 +1,29 @@
 <script>
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { initializeWebGPU } from './engine/WebGPUContext.js';
-	import { createRenderPipelinePoints } from './engine/RenderPipelinePoints.js';
+	import { createRenderPipelinePlanes } from './engine/RenderPipelinePlanes.js';
+	import { createRenderPipelineLines } from './engine/RenderPipelineLines.js';
 	import Camera from './engine/Camera.js';
 	import CameraController from './engine/CameraController.js';
-	import { buildTower, QUAD } from './lattice.js';
-	import { towerParams, zoom } from '$lib/store/store.js';
+	import { towerSlices, buildThreads, QUAD } from './lattice.js';
+	import { thetaParams, towerParams, zoom } from '$lib/store/store.js';
 
 	let canvas;
 	let supported = true;
 
-	let device, context, camera, controller, pipeline;
-	let paramsBuffer, quadBuffer, instanceBuffer;
-	let instanceCount = 0;
+	let device, context, camera, controller, planes, lines;
+	let paramsBuffer, quadBuffer, instanceBuffer, threadBuffer;
+	let threadCount = 0;
+	let sliceList = [];
+	let tp, op;
+	let dirty = true;
 	let raf = null;
 	let dragging = false;
-	let params;
-	let builtLevels = -1;
 
-	const GAP = 0.62;
+	const MAX_INSTANCES = 17; // 2·8 + 1
+	const instanceData = new Float32Array(MAX_INSTANCES * 4);
+	const TERMS = 24;
 
 	function resize() {
 		const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -31,30 +36,71 @@
 		}
 	}
 
-	function rebuild(levels) {
-		const { data, count } = buildTower({ levels, gap: GAP });
-		instanceCount = count;
-		builtLevels = levels;
-		if (instanceBuffer) instanceBuffer.destroy();
-		instanceBuffer = device.createBuffer({
-			label: 'tower instances',
-			size: data.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(instanceBuffer, 0, data);
-		// keep the tower centred in view
-		controller.target[1] = ((levels - 1) * GAP) / 2;
+	function fitCamera() {
+		const H = Math.max(op.slices * op.gap, tp.scale) * 1.7;
+		controller.baseDistance = H / 0.12;
+		controller.distance = (H / 0.12) * get(zoom);
+		controller.target = [tp.centerRe, 0, tp.centerIm];
 		controller.updateCameraPosition();
 	}
 
 	function writeParams() {
-		device.queue.writeBuffer(paramsBuffer, 0, new Float32Array([params.pointSize, 0, 0, 0]));
+		device.queue.writeBuffer(
+			paramsBuffer,
+			0,
+			new Float32Array([
+				tp.tauRe, tp.tauIm,
+				tp.a, tp.b,
+				tp.centerRe, tp.centerIm,
+				tp.scale, TERMS,
+				op.contours ? 1 : 0, 0.62,
+				0, 0
+			])
+		);
+	}
+
+	function rebuild() {
+		sliceList = towerSlices(op);
+		const t = buildThreads({ ...op, ...tp });
+		threadCount = t.count;
+		if (threadBuffer) threadBuffer.destroy();
+		if (t.data.byteLength > 0) {
+			threadBuffer = device.createBuffer({
+				size: t.data.byteLength,
+				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			});
+			device.queue.writeBuffer(threadBuffer, 0, t.data);
+		} else {
+			threadBuffer = null;
+		}
+		fitCamera();
+		writeParams();
+	}
+
+	// order the (few) planes far-to-near for correct transparency
+	function writeSortedInstances() {
+		const v = camera.viewMatrix; // column-major
+		const cx = tp.centerRe;
+		const cz = tp.centerIm;
+		const sorted = [...sliceList].sort((A, B) => {
+			const za = v[2] * cx + v[6] * A.y + v[10] * cz + v[14];
+			const zb = v[2] * cx + v[6] * B.y + v[10] * cz + v[14];
+			return za - zb; // most negative (farthest) first
+		});
+		for (let i = 0; i < sorted.length; i++) {
+			instanceData[i * 4] = sorted[i].y;
+			instanceData[i * 4 + 1] = sorted[i].lambda;
+			instanceData[i * 4 + 2] = sorted[i].tnorm;
+			instanceData[i * 4 + 3] = 0;
+		}
+		device.queue.writeBuffer(instanceBuffer, 0, instanceData, 0, sorted.length * 4);
+		return sorted.length;
 	}
 
 	function frame() {
-		if (params.spin && !dragging) {
-			controller.theta += 0.0022;
-			controller.updateCameraPosition();
+		if (dirty) {
+			rebuild();
+			dirty = false;
 		}
 		resize();
 
@@ -65,11 +111,23 @@
 				{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.02, g: 0.02, b: 0.03, a: 1 } }
 			]
 		});
-		pass.setPipeline(pipeline.pipeline);
-		pass.setBindGroup(0, pipeline.bindGroup);
-		pass.setVertexBuffer(0, instanceBuffer);
-		pass.setVertexBuffer(1, quadBuffer);
-		pass.draw(6, instanceCount, 0, 0);
+
+		if (op.planes) {
+			const n = writeSortedInstances();
+			pass.setPipeline(planes.pipeline);
+			pass.setBindGroup(0, planes.bindGroup);
+			pass.setVertexBuffer(0, instanceBuffer);
+			pass.setVertexBuffer(1, quadBuffer);
+			pass.draw(6, n, 0, 0);
+		}
+
+		if (op.threads && threadBuffer) {
+			pass.setPipeline(lines.pipeline);
+			pass.setBindGroup(0, lines.bindGroup);
+			pass.setVertexBuffer(0, threadBuffer);
+			pass.draw(threadCount, 1, 0, 0);
+		}
+
 		pass.end();
 		device.queue.submit([encoder.finish()]);
 		raf = requestAnimationFrame(frame);
@@ -91,12 +149,13 @@
 	}
 	function onWheel(e) {
 		if (overUI(e)) return;
-		zoom.update((z) => Math.min(Math.max(z + e.deltaY * 0.0012, 0.4), 2.4));
+		zoom.update((z) => Math.min(Math.max(z + e.deltaY * 0.0012, 0.35), 3));
 	}
 
 	onMount(() => {
 		let unmounted = false;
-		let unsub = () => {};
+		let unsubA = () => {};
+		let unsubB = () => {};
 
 		(async () => {
 			const gpu = await initializeWebGPU(canvas);
@@ -108,14 +167,13 @@
 			context = gpu.context;
 
 			resize();
-			camera = new Camera(device, canvas.width, canvas.height);
+			camera = new Camera(device, canvas.width, canvas.height, 'ortho');
 			controller = new CameraController(camera);
-			controller.baseDistance = 9;
-			controller.distance = 9;
-			controller.phi = Math.PI / 2.6;
+			controller.phi = 1.15;
+			controller.theta = 0.6;
 
 			paramsBuffer = device.createBuffer({
-				size: 16,
+				size: 48,
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 			});
 			quadBuffer = device.createBuffer({
@@ -123,13 +181,21 @@
 				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 			});
 			device.queue.writeBuffer(quadBuffer, 0, QUAD);
-			pipeline = createRenderPipelinePoints(device, camera, paramsBuffer);
+			instanceBuffer = device.createBuffer({
+				size: MAX_INSTANCES * 16,
+				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			});
 
-			unsub = towerParams.subscribe((p) => {
-				params = p;
-				if (!device) return;
-				writeParams();
-				if (p.levels !== builtLevels) rebuild(p.levels);
+			planes = createRenderPipelinePlanes(device, camera, paramsBuffer);
+			lines = createRenderPipelineLines(device, camera);
+
+			unsubA = thetaParams.subscribe((p) => {
+				tp = p;
+				dirty = true;
+			});
+			unsubB = towerParams.subscribe((p) => {
+				op = p;
+				dirty = true;
 			});
 
 			frame();
@@ -149,7 +215,8 @@
 			window.removeEventListener('pointermove', onMove);
 			window.removeEventListener('pointerup', onUp);
 			window.removeEventListener('wheel', onWheel);
-			unsub();
+			unsubA();
+			unsubB();
 		};
 	});
 </script>
