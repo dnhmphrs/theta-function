@@ -87,28 +87,25 @@
 			everything else follows from its quasi-periodicity.
 		</p>
 
-		<h2>The universal θ tower (3D)</h2>
+		<h2>The refinement tower (3D)</h2>
 
 		<p>
-			The <a href="/tower">tower</a> is a 3D slice of the <em>universal</em> theta function
-			over the universal elliptic curve. Each transverse slice is the <b>same</b> unit torus
-			in <b>lattice coordinates</b> (u, v) ∈ [0,1]² — not a real/imaginary split — with the
-			argument z = u + vτ. The vertical axis varies the parameter <b>τ</b> (its imaginary
-			part), so each slice is a different elliptic curve and the lattice square is never
-			scaled — only the complex data changes.
+			The <a href="/tower">tower</a> stacks the lattice up the imaginary axis. The floor is
+			a hexagonal lattice (equal periods, ω₂ = e<sup>iπ/3</sup>); each level above is
+			<b>2× finer</b> — the multiplication-by-two isogeny, where the θ-product identities
+			such as θ(2z, 2τ) ∝ θ(z, τ)·θ(z + ½, τ) live. Climbing the tower is refining the
+			lattice, so the grids grow denser as you rise.
 		</p>
 		<p>
-			We draw <b>contour bundles</b> of the field on each slice — |θ|, arg θ, or the
-			normalised norm ‖θ‖ = |θ|·e<sup>−π v² Im τ</sup> (the one that lives on the torus).
-			Because θ varies smoothly with τ, the level sets thread from slice to slice into
-			bundles, and the θ <b>zeros</b> glow as a curve through the stack.
+			Each level's inherited points — the coarser lattice, where ℘ has its <b>poles</b> —
+			are drawn warm; the new points the refinement adds, the <b>zeros</b> between them,
+			are cool. Every pole branches into the six new zeros that surround it one level up,
+			so the <b>threads</b> show the poles of one level feeding the zeros of the next.
 		</p>
 		<p>
-			A neat fact you can see: in lattice coordinates the zero of θ[a,b] sits at the fixed
-			point (u, v) = (½ − b, ½ − a), <em>independent of τ</em> — so it runs straight up the
-			tower while the norm around it breathes. Moving the mouse slides the characteristic
-			(a, b) through the fundamental domain, carrying that zero thread with it — the 3D
-			echo of the plane view. Drag to orbit, scroll to zoom.
+			The two horizontal axes are the two real periods on equal footing — not a real /
+			imaginary split — so each floor is a genuine lattice, not a domain-coloured plane.
+			Deforming ω₂ shears every level together. Drag to orbit, scroll to zoom.
 		</p>
 
 		<a class="back bottom" href="/">← back to the visualiser</a>

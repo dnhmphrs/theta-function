@@ -21,17 +21,17 @@ export const thetaParams = writable({
 	mouseTau: true // when true the mouse drives τ live
 });
 
-// Universal theta tower — contour bundles of θ[a,b](u+vτ, τ) over the unit
-// (u,v) torus square, stacked up the Im τ axis (the universal elliptic curve).
+// Dyadic θ/℘ refinement tower — hexagonal lattices stacked up the Im axis,
+// each level 2× finer, poles branching into the next level's zeros.
 export const towerParams = writable({
-	tauRe: 0.0, // Re τ (shared by every slice)
-	tauImLo: 0.3, // Im τ at the bottom slice
-	tauImHi: 1.2, // Im τ at the top slice
-	a: 0.0, // characteristic a
-	b: 0.0, // characteristic b
-	field: 2, // 0 = |θ|, 1 = arg θ, 2 = ‖θ‖ (normalised)
-	slices: 26, // number of transverse slices
-	mouseChar: true // mouse moves (a,b) in the fundamental domain
+	tauRe: 0.5, // ω₂ = (0.5, √3/2) ⇒ hexagonal
+	tauIm: 0.8660254,
+	levels: 4, // stacked levels
+	gap: 0.9, // vertical spacing between levels
+	poles: true, // show inherited (pole) points
+	zeros: true, // show new (zero) points
+	threads: true, // show the pole→zero branches
+	mouseFund: true // mouse moves ω₂ in the fundamental domain (as in the 1D view)
 });
 
 // camera zoom (shared with the orbit controller)
