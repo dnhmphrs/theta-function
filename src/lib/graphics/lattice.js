@@ -7,11 +7,13 @@
 // zeros trace converging curves (the "line bundles") threaded through the stack.
 
 // Slices from −slices..+slices with their height and scale λ.
+// λ = e^{rate·|t|} makes the stack symmetric about the origin floor (t = 0,
+// λ = 1, the plane view): the grid tightens going both up and down.
 export function towerSlices({ slices, gap, rate }) {
 	const out = [];
 	for (let i = -slices; i <= slices; i++) {
 		const t = i * gap;
-		out.push({ i, y: t, lambda: Math.exp(rate * t), tnorm: (i + slices) / (2 * slices || 1) });
+		out.push({ i, y: t, lambda: Math.exp(rate * Math.abs(t)), tnorm: (i + slices) / (2 * slices || 1) });
 	}
 	return out;
 }
@@ -23,10 +25,10 @@ export function buildThreads({ slices, gap, rate, tauRe, tauIm, a, b, centerRe, 
 	const inView = (x, z) => Math.abs(x - centerRe) <= half && Math.abs(z - centerIm) <= half;
 
 	// zero of θ[a,b] in the base cell, plus a lattice range wide enough to fill view
+	// (widest at the origin floor where λ = 1; higher slices pull zeros inward)
 	const zx0 = 0.5 * (1 + tauRe) - a * tauRe - b;
 	const zy0 = 0.5 * tauIm - a * tauIm;
-	const reach = Math.ceil((half * Math.exp(rate * slices * gap)) / Math.max(0.25, tauIm)) + 3;
-	const M = Math.min(reach, 60);
+	const M = Math.min(Math.ceil(half / Math.max(0.25, tauIm)) + 3, 40);
 
 	const verts = [];
 	for (let m = -M; m <= M; m++) {

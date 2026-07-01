@@ -53,7 +53,7 @@
 				tp.a, tp.b,
 				tp.centerRe, tp.centerIm,
 				tp.scale, TERMS,
-				op.contours ? 1 : 0, 0.62,
+				op.contours ? 1 : 0, 0.5,
 				0, 0
 			])
 		);
