@@ -1,9 +1,8 @@
 <script>
 	import { towerParams } from '$lib/store/store.js';
 
-	// lattice presets — ω₂ = (Re, Im), ω₁ = 1
 	const lattices = [
-		{ name: 'hex', re: 0.5, im: 0.8660254 }, // equal periods, 6-fold
+		{ name: 'hex', re: 0.5, im: 0.8660254 },
 		{ name: 'square', re: 0.0, im: 1.0 },
 		{ name: 'rhombic', re: 0.35, im: 0.7 }
 	];
@@ -30,20 +29,21 @@
 	</div>
 
 	<div class="row">
-		<span class="label">height</span>
-		<input type="range" min="0.03" max="0.35" step="0.01" bind:value={$towerParams.height} />
-		<span class="val">{$towerParams.height.toFixed(2)}</span>
+		<span class="label">levels</span>
+		<input type="range" min="1" max="6" step="1" bind:value={$towerParams.levels} />
+		<span class="val">{$towerParams.levels}</span>
 	</div>
 	<div class="row">
-		<span class="label">tiles</span>
-		<input type="range" min="1" max="4" step="1" bind:value={$towerParams.tiles} />
-		<span class="val">{$towerParams.tiles}</span>
+		<span class="label">gap</span>
+		<input type="range" min="0.4" max="1.6" step="0.05" bind:value={$towerParams.gap} />
+		<span class="val">{$towerParams.gap.toFixed(2)}</span>
 	</div>
 
-	<label class="toggle">
-		<input type="checkbox" bind:checked={$towerParams.contours} />
-		contours
-	</label>
+	<div class="toggles">
+		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.poles} /> poles</label>
+		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.zeros} /> zeros</label>
+		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.threads} /> threads</label>
+	</div>
 </div>
 
 <style>
@@ -123,11 +123,16 @@
 		background: rgba(208, 208, 208, 0.14);
 		border-color: rgba(208, 208, 208, 0.7);
 	}
+	.toggles {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+	}
 	.toggle {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		font-size: 12px;
+		gap: 5px;
+		font-size: 11px;
 		opacity: 0.85;
 		cursor: pointer;
 	}

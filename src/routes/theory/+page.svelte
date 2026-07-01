@@ -87,27 +87,25 @@
 			everything else follows from its quasi-periodicity.
 		</p>
 
-		<h2>The Weierstrass ℘ surface (3D)</h2>
+		<h2>The refinement tower (3D)</h2>
 
 		<p>
-			The <a href="/tower">℘ surface</a> is the theta lattice seen a different way. Fix a
-			period lattice Λ = ℤω₁ + ℤω₂ and form the Weierstrass function
-		</p>
-		<div class="formula">
-			℘(z) = 1⁄z² + <span class="sum">Σ</span><sub>ω≠0</sub> [ 1⁄(z−ω)² − 1⁄ω² ]
-		</div>
-		<p>
-			the canonical <em>doubly-periodic</em> function. Here the two horizontal axes are
-			the two periods on equal footing — <b>hexagonal</b> when ω₂ = e<sup>iπ/3</sup>, so
-			the periods have equal length — and the height is the <em>real</em> value Re ℘. It
-			is not domain-colouring: the surface is a genuine real landscape.
+			The <a href="/tower">tower</a> stacks the lattice up the imaginary axis. The floor is
+			a hexagonal lattice (equal periods, ω₂ = e<sup>iπ/3</sup>); each level above is
+			<b>2× finer</b> — the multiplication-by-two isogeny, where the θ-product identities
+			such as θ(2z, 2τ) ∝ θ(z, τ)·θ(z + ½, τ) live. Climbing the tower is refining the
+			lattice, so the grids grow denser as you rise.
 		</p>
 		<p>
-			℘ has a double pole at every lattice point, so the surface spikes there, and it is
-			<b>even</b>, ℘(−z) = ℘(z) — the symmetry about the origin you can see in the
-			relief. Deforming the lattice (ω₂) shears the whole pattern, and the height
-			<b>contours</b> twist along with it — the torsion of the level sets. ℘ ties back to
-			θ directly: ℘(z) = −d²⁄dz² log θ₁(z) + const. Drag to orbit, scroll to zoom.
+			Each level's inherited points — the coarser lattice, where ℘ has its <b>poles</b> —
+			are drawn warm; the new points the refinement adds, the <b>zeros</b> between them,
+			are cool. Every pole branches into the six new zeros that surround it one level up,
+			so the <b>threads</b> show the poles of one level feeding the zeros of the next.
+		</p>
+		<p>
+			The two horizontal axes are the two real periods on equal footing — not a real /
+			imaginary split — so each floor is a genuine lattice, not a domain-coloured plane.
+			Deforming ω₂ shears every level together. Drag to orbit, scroll to zoom.
 		</p>
 
 		<a class="back bottom" href="/">← back to the visualiser</a>

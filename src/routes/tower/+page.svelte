@@ -4,15 +4,15 @@
 </script>
 
 <svelte:head>
-	<title>℘ — Weierstrass surface</title>
-	<meta name="description" content="The Weierstrass ℘ function as a real height-field over its period lattice." />
+	<title>tower — dyadic θ refinement</title>
+	<meta name="description" content="A tower of hexagonal lattices refining up the imaginary axis, poles feeding zeros." />
 </svelte:head>
 
 <Tower3D />
 
 <header class="ui masthead">
-	<h1>℘ surface</h1>
-	<p>Weierstrass ℘ over its period lattice — real height, poles at the lattice</p>
+	<h1>refinement tower</h1>
+	<p>hexagonal lattices doubling up the Im axis — poles branch into zeros</p>
 </header>
 
 <nav class="ui nav">
