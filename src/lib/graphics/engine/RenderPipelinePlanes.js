@@ -1,29 +1,34 @@
-// RenderPipelinePoints.js — additive instanced-billboard pass for the tower.
-import shaderCode from './shaders/points.wgsl';
+// RenderPipelinePlanes.js — instanced domain-coloured θ slices (transparent).
+import shaderCode from './shaders/plane3d.wgsl';
 
-export function createRenderPipelinePoints(device, camera, paramsBuffer) {
+export function createRenderPipelinePlanes(device, camera, paramsBuffer) {
 	const format = navigator.gpu.getPreferredCanvasFormat();
-	const module = device.createShaderModule({ label: 'points shader', code: shaderCode });
+	const module = device.createShaderModule({ label: 'plane3d shader', code: shaderCode });
 	const { projectionBuffer, viewBuffer } = camera.getBuffers();
 
 	const bindGroupLayout = device.createBindGroupLayout({
 		entries: [
 			{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
 			{ binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
-			{ binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }
+			{ binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }
 		]
 	});
 
-	const additive = { srcFactor: 'one', dstFactor: 'one', operation: 'add' };
+	// premultiplied "over": src + dst·(1−srcA)
+	const blend = {
+		color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+		alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }
+	};
+
 	const pipeline = device.createRenderPipeline({
-		label: 'Points Pipeline',
+		label: 'Planes Pipeline',
 		layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
 		vertex: {
 			module,
 			entryPoint: 'vertex_main',
 			buffers: [
 				{
-					arrayStride: 16, // per-instance vec4 (x, y, z, t)
+					arrayStride: 16, // per-instance vec4 (y, lambda, tnorm, _)
 					stepMode: 'instance',
 					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }]
 				},
@@ -37,7 +42,7 @@ export function createRenderPipelinePoints(device, camera, paramsBuffer) {
 		fragment: {
 			module,
 			entryPoint: 'fragment_main',
-			targets: [{ format, blend: { color: additive, alpha: additive } }]
+			targets: [{ format, blend }]
 		},
 		primitive: { topology: 'triangle-list' }
 	});

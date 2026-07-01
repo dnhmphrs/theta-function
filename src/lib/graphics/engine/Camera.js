@@ -1,20 +1,22 @@
-// Camera.js
+// Camera.js — perspective or orthographic camera with an orbit target.
 import { mat4, vec3 } from 'gl-matrix';
 
 export default class Camera {
-	constructor(device, width, height) {
+	constructor(device, width, height, mode = 'ortho') {
 		this.device = device;
+		this.mode = mode; // 'ortho' | 'perspective'
 		this.projectionMatrix = mat4.create();
 		this.viewMatrix = mat4.create();
-		this.position = vec3.fromValues(0, 0, 5); // Positioned along the z-axis
+		this.position = vec3.fromValues(0, 0, 5);
+		this.target = vec3.fromValues(0, 0, 0);
+		this.up = vec3.fromValues(0, 1, 0);
 		this.aspect = width / height;
+		this.orthoHalfHeight = 3; // world half-height of an orthographic view
 
-		// Initialize buffers
 		this.projectionBuffer = this.createBuffer(64);
 		this.viewBuffer = this.createBuffer(64);
-		this.modelBuffer = this.createBuffer(64); // Placeholder, can be updated later
+		this.modelBuffer = this.createBuffer(64);
 
-		// Set initial projection and view matrices
 		this.updateProjection();
 		this.updateView();
 	}
@@ -40,22 +42,27 @@ export default class Camera {
 		this.updateProjection();
 	}
 
-	updateProjection(fov = Math.PI / 4, near = 0.1, far = 100) {
-		mat4.perspective(this.projectionMatrix, fov, this.aspect, near, far);
-		this.updateBuffers(); // Synchronize buffer with projection matrix
+	updateProjection(near = 0.1, far = 200) {
+		if (this.mode === 'ortho') {
+			const hh = this.orthoHalfHeight;
+			const hw = hh * this.aspect;
+			mat4.ortho(this.projectionMatrix, -hw, hw, -hh, hh, -far, far);
+		} else {
+			mat4.perspective(this.projectionMatrix, Math.PI / 4, this.aspect, near, far);
+		}
+		this.writeProjection();
 	}
 
 	updateView() {
-		const target = vec3.fromValues(0, 0, 0); // Looking at the origin
-		const up = vec3.fromValues(0, 1, 0); // Y-axis is up
-		mat4.lookAt(this.viewMatrix, this.position, target, up);
-		this.updateBuffers(); // Synchronize buffer with view matrix
+		mat4.lookAt(this.viewMatrix, this.position, this.target, this.up);
+		this.writeView();
 	}
 
-	updateBuffers() {
-		if (this.device) {
-			this.device.queue.writeBuffer(this.projectionBuffer, 0, this.projectionMatrix);
-			this.device.queue.writeBuffer(this.viewBuffer, 0, this.viewMatrix);
-		}
+	writeProjection() {
+		if (this.device) this.device.queue.writeBuffer(this.projectionBuffer, 0, this.projectionMatrix);
+	}
+
+	writeView() {
+		if (this.device) this.device.queue.writeBuffer(this.viewBuffer, 0, this.viewMatrix);
 	}
 }

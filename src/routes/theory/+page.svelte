@@ -87,25 +87,26 @@
 			everything else follows from its quasi-periodicity.
 		</p>
 
-		<h2>The zero-lattice tower (3D)</h2>
+		<h2>The scale-tower (3D)</h2>
 
 		<p>
-			At the special modular point <b>τ = e<sup>iπ/3</sup></b> the period lattice ℤ + τℤ
-			<em>is</em> the hexagonal lattice, so the zeros sit on a hexagonal grid. That is
-			the floor of the <a href="/tower">tower</a>.
+			The <a href="/tower">tower</a> is the <em>same</em> function, swept in scale up a
+			third axis. A slice at height <em>t</em> shows the domain-coloured plane
+			θ(<b>λz</b>, τ; a, b) with <b>λ = e<sup>t</sup></b>. The centre floor (t = 0,
+			λ = 1) is exactly the plane view; the four knobs drive every slice at once.
 		</p>
 		<p>
-			Climb the vertical axis and you pass through higher <em>levels</em>. Level-n theta
-			functions are sections of the n-th power of the same line bundle; each one carries
-			<b>n zeros per cell</b>, so its zero grid is a hexagonal lattice packed roughly √n
-			tighter. Stacking the levels gives a tower of hexagonal grids that grow
-			increasingly fine as you rise.
+			Climbing multiplies the argument, so the function oscillates faster and the zeros
+			pack tighter; descending expands the cells — the lattice you'd find "below". At
+			<b>τ = e<sup>iπ/3</sup></b> the period lattice ℤ + τℤ is hexagonal, so every floor
+			is a hexagonal grid, tightening as you rise.
 		</p>
 		<p>
-			These level-n theta functions are exactly the ones that are <b>orthogonal in
-			L²</b> under the natural (Petersson) inner product on the torus — the tower is a
-			picture of that orthogonal family, one hexagonal floor per basis dimension.
-			Drag to orbit it, scroll to zoom.
+			Because the scaling is continuous, a zero at ζ slides to ζ⁄λ as you climb, so the
+			zeros trace continuous curves — the <b>threads</b> — converging toward the axis:
+			the theta divisor drawn as a bundle of 3D lines. Turn on <b>planes</b> to see the
+			complex plane on each floor and <b>contours</b> for the |θ| / phase level sets.
+			Drag to orbit, scroll to zoom.
 		</p>
 
 		<a class="back bottom" href="/">← back to the visualiser</a>

@@ -56,7 +56,11 @@ export default class CameraController {
 		const z = this.target[2] + this.distance * Math.sin(this.phi) * Math.sin(this.theta);
 
 		this.camera.position = vec3.fromValues(x, y, z);
+		this.camera.target = vec3.fromValues(this.target[0], this.target[1], this.target[2]);
+		// In orthographic mode the orbit distance sets the view extent (zoom).
+		this.camera.orthoHalfHeight = this.distance * 0.12;
 		this.camera.updateView();
+		this.camera.updateProjection();
 	}
 
 	updateAspect(width, height) {
