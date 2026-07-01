@@ -17,10 +17,20 @@ export const thetaParams = writable({
 	centerIm: 0.0, // z-view centre (imag)
 	scale: 2.0, // z-view half-height
 	terms: 40, // series terms per side
-	mode: 1 // 0 = flat phase, 1 = with contours
+	mode: 1, // 0 = flat phase, 1 = with contours
+	mouseTau: true // when true the mouse drives τ live
 });
+
+// 3D tower of theta zero-lattices
+export const towerParams = writable({
+	levels: 5, // number of stacked hexagonal grids
+	pointSize: 0.03, // billboard half-size
+	spin: true // slow idle rotation
+});
+
+// camera zoom (shared with the orbit controller)
+export const zoom = writable(1.0);
 
 // parked — used by the 3D/camera path in graphics/engine/_parked
 export const mousePosition = writable(false);
 export const viewportSize = writable(false);
-export const zoom = writable(1.0);

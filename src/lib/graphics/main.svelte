@@ -13,6 +13,9 @@
 	let lastX = 0;
 	let lastY = 0;
 
+	// live flag: when on, moving the mouse drives τ
+	$: mouseTau = $thetaParams.mouseTau;
+
 	const overUI = (event) => event.target?.closest?.('.ui');
 
 	function onPointerDown(event) {
@@ -27,15 +30,31 @@
 	}
 
 	function onPointerMove(event) {
-		if (!dragging) return;
-		const dx = event.clientX - lastX;
-		const dy = event.clientY - lastY;
-		lastX = event.clientX;
-		lastY = event.clientY;
-		thetaParams.update((p) => {
-			const perPixel = (2 * p.scale) / window.innerHeight;
-			return { ...p, centerRe: p.centerRe - dx * perPixel, centerIm: p.centerIm + dy * perPixel };
-		});
+		if (dragging) {
+			const dx = event.clientX - lastX;
+			const dy = event.clientY - lastY;
+			lastX = event.clientX;
+			lastY = event.clientY;
+			thetaParams.update((p) => {
+				const perPixel = (2 * p.scale) / window.innerHeight;
+				return {
+					...p,
+					centerRe: p.centerRe - dx * perPixel,
+					centerIm: p.centerIm + dy * perPixel
+				};
+			});
+			return;
+		}
+
+		if (!mouseTau || overUI(event)) return;
+		// Map the pointer across the viewport to τ (Re τ ∈ [-1,1], Im τ ∈ [0.05,1.5]).
+		const mx = event.clientX / window.innerWidth;
+		const my = event.clientY / window.innerHeight;
+		thetaParams.update((p) => ({
+			...p,
+			tauRe: mx * 2 - 1,
+			tauIm: 0.05 + (1 - my) * 1.45
+		}));
 	}
 
 	function onWheel(event) {

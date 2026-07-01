@@ -12,6 +12,10 @@
 	export let data;
 	let Geometry;
 
+	// The 2-D theta plane is the global background, except on /tower which
+	// mounts its own 3-D view.
+	$: showBackground = !$page.url.pathname.startsWith('/tower');
+
 	$: if (browser && data?.analyticsId) {
 		webVitals({
 			path: $page.url.pathname,
@@ -78,10 +82,12 @@
 /> -->
 </svelte:head>
 
-{#if Geometry}
-	<svelte:component this={Geometry} />
-{:else}
-	<div class="loading">loading.</div>
+{#if showBackground}
+	{#if Geometry}
+		<svelte:component this={Geometry} />
+	{:else}
+		<div class="loading">loading.</div>
+	{/if}
 {/if}
 
 <div class="app">

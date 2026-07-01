@@ -87,6 +87,27 @@
 			everything else follows from its quasi-periodicity.
 		</p>
 
+		<h2>The zero-lattice tower (3D)</h2>
+
+		<p>
+			At the special modular point <b>τ = e<sup>iπ/3</sup></b> the period lattice ℤ + τℤ
+			<em>is</em> the hexagonal lattice, so the zeros sit on a hexagonal grid. That is
+			the floor of the <a href="/tower">tower</a>.
+		</p>
+		<p>
+			Climb the vertical axis and you pass through higher <em>levels</em>. Level-n theta
+			functions are sections of the n-th power of the same line bundle; each one carries
+			<b>n zeros per cell</b>, so its zero grid is a hexagonal lattice packed roughly √n
+			tighter. Stacking the levels gives a tower of hexagonal grids that grow
+			increasingly fine as you rise.
+		</p>
+		<p>
+			These level-n theta functions are exactly the ones that are <b>orthogonal in
+			L²</b> under the natural (Petersson) inner product on the torus — the tower is a
+			picture of that orthogonal family, one hexagonal floor per basis dimension.
+			Drag to orbit it, scroll to zoom.
+		</p>
+
 		<a class="back bottom" href="/">← back to the visualiser</a>
 	</article>
 </div>
@@ -96,9 +117,14 @@
 		position: fixed;
 		inset: 0;
 		overflow-y: auto;
-		background: rgba(18, 18, 18, 0.72);
-		backdrop-filter: blur(3px);
+		background: #ffffff;
 		-webkit-overflow-scrolling: touch;
+	}
+
+	/* plain white page — override the global light-on-dark text colour */
+	.overlay,
+	.overlay * {
+		color: #1a1a1a;
 	}
 
 	article {
@@ -163,8 +189,8 @@
 		text-align: center;
 		padding: 1.4rem 1rem;
 		margin: 1.6rem 0;
-		border-top: 1px solid rgba(208, 208, 208, 0.15);
-		border-bottom: 1px solid rgba(208, 208, 208, 0.15);
+		border-top: 1px solid rgba(0, 0, 0, 0.15);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 		letter-spacing: 0.02em;
 		line-height: 1.6;
 	}
@@ -194,7 +220,7 @@
 	td {
 		padding: 5px 22px 5px 0;
 		text-align: left;
-		border-bottom: 1px solid rgba(208, 208, 208, 0.12);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 	}
 
 	th {
