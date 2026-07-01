@@ -1,28 +1,33 @@
-// RenderPipelinePoints.js — depth-tested instanced billboards for the lattice.
-import shaderCode from './shaders/points.wgsl';
+// RenderPipelineField.js — additive instanced contour-bundle slices.
+import shaderCode from './shaders/field3d.wgsl';
 
-export function createRenderPipelinePoints(device, camera, paramsBuffer) {
+export function createRenderPipelineField(device, camera, paramsBuffer) {
 	const format = navigator.gpu.getPreferredCanvasFormat();
-	const module = device.createShaderModule({ label: 'points shader', code: shaderCode });
+	const module = device.createShaderModule({ label: 'field3d shader', code: shaderCode });
 	const { projectionBuffer, viewBuffer } = camera.getBuffers();
 
 	const bindGroupLayout = device.createBindGroupLayout({
 		entries: [
 			{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
 			{ binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
-			{ binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }
+			{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: { type: 'uniform' }
+			}
 		]
 	});
 
+	const additive = { srcFactor: 'one', dstFactor: 'one', operation: 'add' };
 	const pipeline = device.createRenderPipeline({
-		label: 'Points Pipeline',
+		label: 'Field Pipeline',
 		layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
 		vertex: {
 			module,
 			entryPoint: 'vertex_main',
 			buffers: [
 				{
-					arrayStride: 16, // per-instance vec4 (x, y, z, colorT)
+					arrayStride: 16, // per-instance vec4 (y, tauIm, tnorm, _)
 					stepMode: 'instance',
 					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }]
 				},
@@ -33,9 +38,12 @@ export function createRenderPipelinePoints(device, camera, paramsBuffer) {
 				}
 			]
 		},
-		fragment: { module, entryPoint: 'fragment_main', targets: [{ format }] },
-		primitive: { topology: 'triangle-list' },
-		depthStencil: { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' }
+		fragment: {
+			module,
+			entryPoint: 'fragment_main',
+			targets: [{ format, blend: { color: additive, alpha: additive } }]
+		},
+		primitive: { topology: 'triangle-list' }
 	});
 
 	const bindGroup = device.createBindGroup({
