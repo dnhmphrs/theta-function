@@ -4,15 +4,15 @@
 </script>
 
 <svelte:head>
-	<title>tower — dyadic θ refinement</title>
-	<meta name="description" content="A tower of hexagonal lattices refining up the imaginary axis, poles feeding zeros." />
+	<title>tower — universal θ</title>
+	<meta name="description" content="Contour bundles of the universal theta function over the (u,v) torus, stacked in τ." />
 </svelte:head>
 
 <Tower3D />
 
 <header class="ui masthead">
-	<h1>refinement tower</h1>
-	<p>hexagonal lattices doubling up the Im axis — poles branch into zeros</p>
+	<h1>universal θ</h1>
+	<p>θ[a,b](u+vτ, τ) over the (u,v) torus, stacked up the Im τ axis</p>
 </header>
 
 <nav class="ui nav">
@@ -22,7 +22,7 @@
 
 <TowerControls />
 
-<p class="ui hint">drag to orbit · scroll to zoom</p>
+<p class="ui hint">drag to orbit · scroll to zoom · mouse moves (a, b)</p>
 
 <style>
 	.masthead {

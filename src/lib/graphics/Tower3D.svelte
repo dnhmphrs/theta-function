@@ -2,21 +2,23 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { initializeWebGPU } from './engine/WebGPUContext.js';
-	import { createRenderPipelinePoints } from './engine/RenderPipelinePoints.js';
-	import { createRenderPipelineThreads } from './engine/RenderPipelineThreads.js';
+	import { createRenderPipelineField } from './engine/RenderPipelineField.js';
 	import Camera from './engine/Camera.js';
 	import CameraController from './engine/CameraController.js';
-	import { buildDyadicTower, QUAD } from './lattice.js';
+	import { buildSlices, QUAD } from './lattice.js';
 	import { towerParams, zoom } from '$lib/store/store.js';
 
-	const RADIUS = 3;
+	const SPAN = 2.4; // world size of the unit (u,v) square
+	const HEIGHT = 3.2; // vertical extent of the τ tower
+	const TERMS = 20;
+	const MAX_SLICES = 48;
 
 	let canvas;
 	let supported = true;
 
-	let device, context, camera, controller, points, threads;
-	let paramsBuffer, quadBuffer, poleBuffer, zeroBuffer, threadBuffer, depthTexture;
-	let poleCount = 0, zeroCount = 0, threadCount = 0;
+	let device, context, camera, controller, field;
+	let paramsBuffer, quadBuffer, instanceBuffer;
+	let sliceCount = 0;
 	let op;
 	let raf = null;
 	let dragging = false;
@@ -30,51 +32,34 @@
 			canvas.width = w;
 			canvas.height = h;
 			if (camera) camera.updateAspect(w, h);
-			if (depthTexture) depthTexture.destroy();
-			depthTexture = device.createTexture({
-				size: { width: w, height: h },
-				format: 'depth24plus',
-				usage: GPUTextureUsage.RENDER_ATTACHMENT
-			});
 		}
 	}
 
 	function fitCamera() {
-		const H = Math.max(RADIUS, ((op.levels - 1) * op.gap) / 2 + 0.6) * 1.5;
+		const H = Math.max(SPAN / 2, HEIGHT / 2) * 1.5;
 		controller.baseDistance = H / 0.12;
 		controller.distance = (H / 0.12) * get(zoom);
-		controller.target = [0, ((op.levels - 1) * op.gap) / 2, 0];
 		controller.updateCameraPosition();
 	}
 
-	function makeBuffer(data) {
-		if (data.byteLength === 0) return null;
-		const b = device.createBuffer({
-			size: data.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(b, 0, data);
-		return b;
+	function writeParams() {
+		device.queue.writeBuffer(
+			paramsBuffer,
+			0,
+			new Float32Array([op.tauRe, op.a, op.b, op.field, SPAN, TERMS, 0, 0])
+		);
 	}
 
 	function rebuild() {
-		const t = buildDyadicTower({ ...op, radius: RADIUS });
-		// split points into poles (colorT 0) and zeros (colorT 1) for toggling
-		const poles = [], zeros = [];
-		for (let i = 0; i < t.pointCount; i++) {
-			const o = i * 4;
-			const dst = t.points[o + 3] < 0.5 ? poles : zeros;
-			dst.push(t.points[o], t.points[o + 1], t.points[o + 2], t.points[o + 3]);
-		}
-		poleBuffer?.destroy();
-		zeroBuffer?.destroy();
-		threadBuffer?.destroy();
-		poleBuffer = makeBuffer(new Float32Array(poles));
-		zeroBuffer = makeBuffer(new Float32Array(zeros));
-		threadBuffer = makeBuffer(t.threads);
-		poleCount = poles.length / 4;
-		zeroCount = zeros.length / 4;
-		threadCount = t.threadCount;
+		sliceCount = Math.min(op.slices, MAX_SLICES);
+		const data = buildSlices({
+			count: sliceCount,
+			height: HEIGHT,
+			tauImLo: op.tauImLo,
+			tauImHi: op.tauImHi
+		});
+		device.queue.writeBuffer(instanceBuffer, 0, data);
+		writeParams();
 		fitCamera();
 	}
 
@@ -89,35 +74,14 @@
 		const view = context.getCurrentTexture().createView();
 		const pass = encoder.beginRenderPass({
 			colorAttachments: [
-				{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.03, g: 0.03, b: 0.045, a: 1 } }
-			],
-			depthStencilAttachment: {
-				view: depthTexture.createView(),
-				depthClearValue: 1.0,
-				depthLoadOp: 'clear',
-				depthStoreOp: 'store'
-			}
+				{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.02, g: 0.02, b: 0.03, a: 1 } }
+			]
 		});
-
-		if (op.threads && threadBuffer) {
-			pass.setPipeline(threads.pipeline);
-			pass.setBindGroup(0, threads.bindGroup);
-			pass.setVertexBuffer(0, threadBuffer);
-			pass.draw(threadCount, 1, 0, 0);
-		}
-
-		pass.setPipeline(points.pipeline);
-		pass.setBindGroup(0, points.bindGroup);
+		pass.setPipeline(field.pipeline);
+		pass.setBindGroup(0, field.bindGroup);
+		pass.setVertexBuffer(0, instanceBuffer);
 		pass.setVertexBuffer(1, quadBuffer);
-		if (op.poles && poleBuffer) {
-			pass.setVertexBuffer(0, poleBuffer);
-			pass.draw(6, poleCount, 0, 0);
-		}
-		if (op.zeros && zeroBuffer) {
-			pass.setVertexBuffer(0, zeroBuffer);
-			pass.draw(6, zeroCount, 0, 0);
-		}
-
+		pass.draw(6, sliceCount, 0, 0);
 		pass.end();
 		device.queue.submit([encoder.finish()]);
 		raf = requestAnimationFrame(frame);
@@ -130,7 +94,16 @@
 		controller.startDrag(e.clientX, e.clientY);
 	}
 	function onMove(e) {
-		if (dragging) controller.handleMouseMove(e.clientX, e.clientY);
+		if (dragging) {
+			controller.handleMouseMove(e.clientX, e.clientY);
+			return;
+		}
+		// mouse moves (a,b) within the fundamental domain [0,1]² — like the 1D case
+		if (op?.mouseChar && !overUI(e)) {
+			const a = Math.min(Math.max(e.clientX / window.innerWidth, 0), 1);
+			const b = Math.min(Math.max(e.clientY / window.innerHeight, 0), 1);
+			towerParams.update((s) => ({ ...s, a, b }));
+		}
 	}
 	function onUp() {
 		dragging = false;
@@ -157,22 +130,24 @@
 			resize();
 			camera = new Camera(device, canvas.width, canvas.height, 'ortho');
 			controller = new CameraController(camera);
-			controller.phi = 1.15;
-			controller.theta = 0.6;
+			controller.phi = 1.1;
+			controller.theta = 0.7;
 
 			paramsBuffer = device.createBuffer({
-				size: 16,
+				size: 32,
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 			});
-			device.queue.writeBuffer(paramsBuffer, 0, new Float32Array([0.05, 0, 0, 0]));
 			quadBuffer = device.createBuffer({
 				size: QUAD.byteLength,
 				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 			});
 			device.queue.writeBuffer(quadBuffer, 0, QUAD);
+			instanceBuffer = device.createBuffer({
+				size: MAX_SLICES * 16,
+				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			});
 
-			points = createRenderPipelinePoints(device, camera, paramsBuffer);
-			threads = createRenderPipelineThreads(device, camera);
+			field = createRenderPipelineField(device, camera, paramsBuffer);
 
 			unsub = towerParams.subscribe((p) => {
 				op = p;
