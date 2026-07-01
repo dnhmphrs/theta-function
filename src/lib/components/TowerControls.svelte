@@ -1,57 +1,49 @@
 <script>
-	import { thetaParams, towerParams } from '$lib/store/store.js';
+	import { towerParams } from '$lib/store/store.js';
 
-	// same four characteristics as the plane view
-	const presets = [
-		{ name: 'θ₁', a: 0.5, b: 0.5 },
-		{ name: 'θ₂', a: 0.5, b: 0.0 },
-		{ name: 'θ₃', a: 0.0, b: 0.0 },
-		{ name: 'θ₄', a: 0.0, b: 0.5 }
+	// lattice presets — ω₂ = (Re, Im), ω₁ = 1
+	const lattices = [
+		{ name: 'hex', re: 0.5, im: 0.8660254 }, // equal periods, 6-fold
+		{ name: 'square', re: 0.0, im: 1.0 },
+		{ name: 'rhombic', re: 0.35, im: 0.7 }
 	];
-	const applyPreset = (p) => thetaParams.update((s) => ({ ...s, a: p.a, b: p.b }));
-	const isActive = (p, s) => Math.abs(s.a - p.a) < 1e-3 && Math.abs(s.b - p.b) < 1e-3;
-	const fmt = (v) => (v < 0 ? '' : ' ') + v.toFixed(2);
+	const applyLattice = (l) => towerParams.update((s) => ({ ...s, tauRe: l.re, tauIm: l.im }));
+	const isActive = (l, s) => Math.abs(s.tauRe - l.re) < 1e-3 && Math.abs(s.tauIm - l.im) < 1e-3;
 </script>
 
 <div class="ui panel">
 	<div class="row">
-		<span class="label">Re τ</span>
-		<input type="range" min="-1" max="1" step="0.01" bind:value={$thetaParams.tauRe} />
-		<span class="val">{fmt($thetaParams.tauRe)}</span>
+		<span class="label">Re ω₂</span>
+		<input type="range" min="-0.6" max="0.6" step="0.01" bind:value={$towerParams.tauRe} />
+		<span class="val">{$towerParams.tauRe.toFixed(2)}</span>
 	</div>
 	<div class="row">
-		<span class="label">Im τ</span>
-		<input type="range" min="0.1" max="1.5" step="0.01" bind:value={$thetaParams.tauIm} />
-		<span class="val">{fmt($thetaParams.tauIm)}</span>
-	</div>
-	<div class="row">
-		<span class="label">a</span>
-		<input type="range" min="0" max="1" step="0.01" bind:value={$thetaParams.a} />
-		<span class="val">{fmt($thetaParams.a)}</span>
-	</div>
-	<div class="row">
-		<span class="label">b</span>
-		<input type="range" min="0" max="1" step="0.01" bind:value={$thetaParams.b} />
-		<span class="val">{fmt($thetaParams.b)}</span>
+		<span class="label">Im ω₂</span>
+		<input type="range" min="0.4" max="1.3" step="0.01" bind:value={$towerParams.tauIm} />
+		<span class="val">{$towerParams.tauIm.toFixed(2)}</span>
 	</div>
 
 	<div class="presets">
-		{#each presets as p}
-			<button class:active={isActive(p, $thetaParams)} on:click={() => applyPreset(p)}>{p.name}</button>
+		{#each lattices as l}
+			<button class:active={isActive(l, $towerParams)} on:click={() => applyLattice(l)}>{l.name}</button>
 		{/each}
 	</div>
 
 	<div class="row">
-		<span class="label">slices</span>
-		<input type="range" min="1" max="8" step="1" bind:value={$towerParams.slices} />
-		<span class="val">{$towerParams.slices}</span>
+		<span class="label">height</span>
+		<input type="range" min="0.03" max="0.35" step="0.01" bind:value={$towerParams.height} />
+		<span class="val">{$towerParams.height.toFixed(2)}</span>
+	</div>
+	<div class="row">
+		<span class="label">tiles</span>
+		<input type="range" min="1" max="4" step="1" bind:value={$towerParams.tiles} />
+		<span class="val">{$towerParams.tiles}</span>
 	</div>
 
-	<div class="toggles">
-		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.planes} /> planes</label>
-		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.contours} /> contours</label>
-		<label class="toggle"><input type="checkbox" bind:checked={$towerParams.threads} /> threads</label>
-	</div>
+	<label class="toggle">
+		<input type="checkbox" bind:checked={$towerParams.contours} />
+		contours
+	</label>
 </div>
 
 <style>
@@ -72,7 +64,7 @@
 	}
 	.row {
 		display: grid;
-		grid-template-columns: 42px 1fr 42px;
+		grid-template-columns: 46px 1fr 40px;
 		align-items: center;
 		gap: 8px;
 	}
@@ -84,7 +76,6 @@
 		font-size: 12px;
 		opacity: 0.55;
 		font-variant-numeric: tabular-nums;
-		white-space: pre;
 		text-align: right;
 	}
 	input[type='range'] {
@@ -112,7 +103,7 @@
 	}
 	.presets {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 6px;
 	}
 	.presets button {
@@ -122,6 +113,7 @@
 		border-radius: 3px;
 		color: var(--primary);
 		cursor: pointer;
+		font-size: 11px;
 		transition: border-color 0.15s, background 0.15s;
 	}
 	.presets button:hover {
@@ -131,16 +123,11 @@
 		background: rgba(208, 208, 208, 0.14);
 		border-color: rgba(208, 208, 208, 0.7);
 	}
-	.toggles {
-		display: flex;
-		justify-content: space-between;
-		gap: 8px;
-	}
 	.toggle {
 		display: flex;
 		align-items: center;
-		gap: 5px;
-		font-size: 11px;
+		gap: 8px;
+		font-size: 12px;
 		opacity: 0.85;
 		cursor: pointer;
 	}

@@ -87,26 +87,27 @@
 			everything else follows from its quasi-periodicity.
 		</p>
 
-		<h2>The scale-tower (3D)</h2>
+		<h2>The Weierstrass ℘ surface (3D)</h2>
 
 		<p>
-			The <a href="/tower">tower</a> is the <em>same</em> function, swept in scale up a
-			third axis. A slice at height <em>t</em> shows the domain-coloured plane
-			θ(<b>λz</b>, τ; a, b) with <b>λ = e<sup>t</sup></b>. The centre floor (t = 0,
-			λ = 1) is exactly the plane view; the four knobs drive every slice at once.
+			The <a href="/tower">℘ surface</a> is the theta lattice seen a different way. Fix a
+			period lattice Λ = ℤω₁ + ℤω₂ and form the Weierstrass function
+		</p>
+		<div class="formula">
+			℘(z) = 1⁄z² + <span class="sum">Σ</span><sub>ω≠0</sub> [ 1⁄(z−ω)² − 1⁄ω² ]
+		</div>
+		<p>
+			the canonical <em>doubly-periodic</em> function. Here the two horizontal axes are
+			the two periods on equal footing — <b>hexagonal</b> when ω₂ = e<sup>iπ/3</sup>, so
+			the periods have equal length — and the height is the <em>real</em> value Re ℘. It
+			is not domain-colouring: the surface is a genuine real landscape.
 		</p>
 		<p>
-			Climbing multiplies the argument, so the function oscillates faster and the zeros
-			pack tighter; descending expands the cells — the lattice you'd find "below". At
-			<b>τ = e<sup>iπ/3</sup></b> the period lattice ℤ + τℤ is hexagonal, so every floor
-			is a hexagonal grid, tightening as you rise.
-		</p>
-		<p>
-			Because the scaling is continuous, a zero at ζ slides to ζ⁄λ as you climb, so the
-			zeros trace continuous curves — the <b>threads</b> — converging toward the axis:
-			the theta divisor drawn as a bundle of 3D lines. Turn on <b>planes</b> to see the
-			complex plane on each floor and <b>contours</b> for the |θ| / phase level sets.
-			Drag to orbit, scroll to zoom.
+			℘ has a double pole at every lattice point, so the surface spikes there, and it is
+			<b>even</b>, ℘(−z) = ℘(z) — the symmetry about the origin you can see in the
+			relief. Deforming the lattice (ω₂) shears the whole pattern, and the height
+			<b>contours</b> twist along with it — the torsion of the level sets. ℘ ties back to
+			θ directly: ℘(z) = −d²⁄dz² log θ₁(z) + const. Drag to orbit, scroll to zoom.
 		</p>
 
 		<a class="back bottom" href="/">← back to the visualiser</a>

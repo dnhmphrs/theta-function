@@ -21,16 +21,16 @@ export const thetaParams = writable({
 	mouseTau: true // when true the mouse drives τ live
 });
 
-// 3D tower — the same θ swept in scale (λ = e^t) up the vertical axis.
-// The four variables (z-view, τ, a, b) live in thetaParams above and drive
-// every slice; these are just the tower's display options.
+// Weierstrass ℘ surface — real height-field over the period lattice ℤω₁ + ℤω₂.
+// ω₁ = 1 is fixed; ω₂ = (tauRe, tauIm) sets the lattice shape (hexagonal by
+// default). The height is Re ℘, so lattice points are poles.
 export const towerParams = writable({
-	slices: 4, // planes above centre (mirrored below)
-	gap: 0.55, // vertical spacing between slices
-	rate: 0.9, // how fast the scale λ grows per unit height
-	planes: true, // domain-coloured complex plane on each slice
-	contours: true, // |θ| / phase contour lines on the planes
-	threads: true // zero curves threading between the planes
+	tauRe: 0.5, // Re ω₂  (0.5, √3/2) ⇒ hexagonal, equal periods
+	tauIm: 0.8660254, // Im ω₂
+	tiles: 2, // how many lattice cells to show each way
+	height: 0.14, // vertical scale of Re ℘
+	clampH: 2.2, // cap on the pole spikes
+	contours: true // height level-set lines
 });
 
 // camera zoom (shared with the orbit controller)
