@@ -1,33 +1,28 @@
-// RenderPipelineField.js — additive instanced contour-bundle slices.
-import shaderCode from './shaders/field3d.wgsl';
+// RenderPipelinePoints.js — depth-tested instanced billboards for the lattice.
+import shaderCode from './shaders/points.wgsl';
 
-export function createRenderPipelineField(device, camera, paramsBuffer) {
+export function createRenderPipelinePoints(device, camera, paramsBuffer) {
 	const format = navigator.gpu.getPreferredCanvasFormat();
-	const module = device.createShaderModule({ label: 'field3d shader', code: shaderCode });
+	const module = device.createShaderModule({ label: 'points shader', code: shaderCode });
 	const { projectionBuffer, viewBuffer } = camera.getBuffers();
 
 	const bindGroupLayout = device.createBindGroupLayout({
 		entries: [
 			{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
 			{ binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
-			{
-				binding: 2,
-				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-				buffer: { type: 'uniform' }
-			}
+			{ binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }
 		]
 	});
 
-	const additive = { srcFactor: 'one', dstFactor: 'one', operation: 'add' };
 	const pipeline = device.createRenderPipeline({
-		label: 'Field Pipeline',
+		label: 'Points Pipeline',
 		layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
 		vertex: {
 			module,
 			entryPoint: 'vertex_main',
 			buffers: [
 				{
-					arrayStride: 16, // per-instance vec4 (y, tauIm, tnorm, _)
+					arrayStride: 16, // per-instance vec4 (x, y, z, colorT)
 					stepMode: 'instance',
 					attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x4' }]
 				},
@@ -38,12 +33,9 @@ export function createRenderPipelineField(device, camera, paramsBuffer) {
 				}
 			]
 		},
-		fragment: {
-			module,
-			entryPoint: 'fragment_main',
-			targets: [{ format, blend: { color: additive, alpha: additive } }]
-		},
-		primitive: { topology: 'triangle-list' }
+		fragment: { module, entryPoint: 'fragment_main', targets: [{ format }] },
+		primitive: { topology: 'triangle-list' },
+		depthStencil: { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' }
 	});
 
 	const bindGroup = device.createBindGroup({
