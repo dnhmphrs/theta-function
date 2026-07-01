@@ -10,7 +10,12 @@ export function createRenderPipelinePlanes(device, camera, paramsBuffer) {
 		entries: [
 			{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
 			{ binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
-			{ binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }
+			// Params is read in both stages (vertex uses center/scale, fragment the rest)
+			{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: { type: 'uniform' }
+			}
 		]
 	});
 
