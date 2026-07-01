@@ -2,22 +2,22 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { initializeWebGPU } from './engine/WebGPUContext.js';
-	import { createRenderPipelineSurface } from './engine/RenderPipelineSurface.js';
+	import { createRenderPipelinePoints } from './engine/RenderPipelinePoints.js';
+	import { createRenderPipelineThreads } from './engine/RenderPipelineThreads.js';
 	import Camera from './engine/Camera.js';
 	import CameraController from './engine/CameraController.js';
-	import { buildGrid } from './lattice.js';
+	import { buildDyadicTower, QUAD } from './lattice.js';
 	import { towerParams, zoom } from '$lib/store/store.js';
 
-	const RES = 220; // mesh resolution
+	const RADIUS = 3;
 
 	let canvas;
 	let supported = true;
 
-	let device, context, camera, controller, surface;
-	let paramsBuffer, vertexBuffer, indexBuffer, depthTexture;
-	let indexCount = 0;
+	let device, context, camera, controller, points, threads;
+	let paramsBuffer, quadBuffer, poleBuffer, zeroBuffer, threadBuffer, depthTexture;
+	let poleCount = 0, zeroCount = 0, threadCount = 0;
 	let op;
-	let builtTiles = -1;
 	let raf = null;
 	let dragging = false;
 	let dirty = true;
@@ -40,50 +40,47 @@
 	}
 
 	function fitCamera() {
-		const extent = op.tiles + 0.5;
-		const H = Math.max(extent, op.clampH) * 1.6;
+		const H = Math.max(RADIUS, ((op.levels - 1) * op.gap) / 2 + 0.6) * 1.5;
 		controller.baseDistance = H / 0.12;
 		controller.distance = (H / 0.12) * get(zoom);
+		controller.target = [0, ((op.levels - 1) * op.gap) / 2, 0];
 		controller.updateCameraPosition();
 	}
 
-	function rebuildMesh() {
-		const extent = op.tiles + 0.5;
-		const { positions, indices, indexCount: n } = buildGrid(RES, extent);
-		indexCount = n;
-		builtTiles = op.tiles;
-		if (vertexBuffer) vertexBuffer.destroy();
-		if (indexBuffer) indexBuffer.destroy();
-		vertexBuffer = device.createBuffer({
-			size: positions.byteLength,
+	function makeBuffer(data) {
+		if (data.byteLength === 0) return null;
+		const b = device.createBuffer({
+			size: data.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 		});
-		device.queue.writeBuffer(vertexBuffer, 0, positions);
-		indexBuffer = device.createBuffer({
-			size: indices.byteLength,
-			usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-		});
-		device.queue.writeBuffer(indexBuffer, 0, indices);
-		fitCamera();
+		device.queue.writeBuffer(b, 0, data);
+		return b;
 	}
 
-	function writeParams() {
-		device.queue.writeBuffer(
-			paramsBuffer,
-			0,
-			new Float32Array([
-				1, 0, // ω₁
-				op.tauRe, op.tauIm, // ω₂
-				op.height, op.clampH,
-				op.contours ? 1 : 0, 0
-			])
-		);
+	function rebuild() {
+		const t = buildDyadicTower({ ...op, radius: RADIUS });
+		// split points into poles (colorT 0) and zeros (colorT 1) for toggling
+		const poles = [], zeros = [];
+		for (let i = 0; i < t.pointCount; i++) {
+			const o = i * 4;
+			const dst = t.points[o + 3] < 0.5 ? poles : zeros;
+			dst.push(t.points[o], t.points[o + 1], t.points[o + 2], t.points[o + 3]);
+		}
+		poleBuffer?.destroy();
+		zeroBuffer?.destroy();
+		threadBuffer?.destroy();
+		poleBuffer = makeBuffer(new Float32Array(poles));
+		zeroBuffer = makeBuffer(new Float32Array(zeros));
+		threadBuffer = makeBuffer(t.threads);
+		poleCount = poles.length / 4;
+		zeroCount = zeros.length / 4;
+		threadCount = t.threadCount;
+		fitCamera();
 	}
 
 	function frame() {
 		if (dirty) {
-			if (op.tiles !== builtTiles) rebuildMesh();
-			writeParams();
+			rebuild();
 			dirty = false;
 		}
 		resize();
@@ -92,7 +89,7 @@
 		const view = context.getCurrentTexture().createView();
 		const pass = encoder.beginRenderPass({
 			colorAttachments: [
-				{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.03, g: 0.03, b: 0.04, a: 1 } }
+				{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.03, g: 0.03, b: 0.045, a: 1 } }
 			],
 			depthStencilAttachment: {
 				view: depthTexture.createView(),
@@ -101,11 +98,26 @@
 				depthStoreOp: 'store'
 			}
 		});
-		pass.setPipeline(surface.pipeline);
-		pass.setBindGroup(0, surface.bindGroup);
-		pass.setVertexBuffer(0, vertexBuffer);
-		pass.setIndexBuffer(indexBuffer, 'uint32');
-		pass.drawIndexed(indexCount, 1, 0, 0, 0);
+
+		if (op.threads && threadBuffer) {
+			pass.setPipeline(threads.pipeline);
+			pass.setBindGroup(0, threads.bindGroup);
+			pass.setVertexBuffer(0, threadBuffer);
+			pass.draw(threadCount, 1, 0, 0);
+		}
+
+		pass.setPipeline(points.pipeline);
+		pass.setBindGroup(0, points.bindGroup);
+		pass.setVertexBuffer(1, quadBuffer);
+		if (op.poles && poleBuffer) {
+			pass.setVertexBuffer(0, poleBuffer);
+			pass.draw(6, poleCount, 0, 0);
+		}
+		if (op.zeros && zeroBuffer) {
+			pass.setVertexBuffer(0, zeroBuffer);
+			pass.draw(6, zeroCount, 0, 0);
+		}
+
 		pass.end();
 		device.queue.submit([encoder.finish()]);
 		raf = requestAnimationFrame(frame);
@@ -145,14 +157,22 @@
 			resize();
 			camera = new Camera(device, canvas.width, canvas.height, 'ortho');
 			controller = new CameraController(camera);
-			controller.phi = 1.05;
+			controller.phi = 1.15;
 			controller.theta = 0.6;
 
 			paramsBuffer = device.createBuffer({
-				size: 32,
+				size: 16,
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 			});
-			surface = createRenderPipelineSurface(device, camera, paramsBuffer);
+			device.queue.writeBuffer(paramsBuffer, 0, new Float32Array([0.05, 0, 0, 0]));
+			quadBuffer = device.createBuffer({
+				size: QUAD.byteLength,
+				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+			});
+			device.queue.writeBuffer(quadBuffer, 0, QUAD);
+
+			points = createRenderPipelinePoints(device, camera, paramsBuffer);
+			threads = createRenderPipelineThreads(device, camera);
 
 			unsub = towerParams.subscribe((p) => {
 				op = p;

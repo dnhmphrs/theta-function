@@ -21,16 +21,16 @@ export const thetaParams = writable({
 	mouseTau: true // when true the mouse drives τ live
 });
 
-// Weierstrass ℘ surface — real height-field over the period lattice ℤω₁ + ℤω₂.
-// ω₁ = 1 is fixed; ω₂ = (tauRe, tauIm) sets the lattice shape (hexagonal by
-// default). The height is Re ℘, so lattice points are poles.
+// Dyadic θ/℘ refinement tower — hexagonal lattices stacked up the Im axis,
+// each level 2× finer, poles branching into the next level's zeros.
 export const towerParams = writable({
-	tauRe: 0.5, // Re ω₂  (0.5, √3/2) ⇒ hexagonal, equal periods
-	tauIm: 0.8660254, // Im ω₂
-	tiles: 2, // how many lattice cells to show each way
-	height: 0.14, // vertical scale of Re ℘
-	clampH: 2.2, // cap on the pole spikes
-	contours: true // height level-set lines
+	tauRe: 0.5, // ω₂ = (0.5, √3/2) ⇒ hexagonal
+	tauIm: 0.8660254,
+	levels: 4, // stacked levels
+	gap: 0.9, // vertical spacing between levels
+	poles: true, // show inherited (pole) points
+	zeros: true, // show new (zero) points
+	threads: true // show the pole→zero branches
 });
 
 // camera zoom (shared with the orbit controller)
