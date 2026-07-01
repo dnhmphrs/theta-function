@@ -4,15 +4,15 @@
 </script>
 
 <svelte:head>
-	<title>tower — θ scale-tower</title>
-	<meta name="description" content="The theta function swept in scale as a 3D tower of domain-coloured planes." />
+	<title>℘ — Weierstrass surface</title>
+	<meta name="description" content="The Weierstrass ℘ function as a real height-field over its period lattice." />
 </svelte:head>
 
 <Tower3D />
 
 <header class="ui masthead">
-	<h1>θ scale-tower</h1>
-	<p>the same θ swept in scale — λ = e<sup>t</sup> up the vertical axis</p>
+	<h1>℘ surface</h1>
+	<p>Weierstrass ℘ over its period lattice — real height, poles at the lattice</p>
 </header>
 
 <nav class="ui nav">

@@ -13,7 +13,7 @@
 </header>
 
 <nav class="ui nav">
-	<a href="/tower">tower →</a>
+	<a href="/tower">℘ surface →</a>
 	<a href="/theory">theory →</a>
 </nav>
 
