@@ -21,14 +21,16 @@
 </script>
 
 <div class="ui panel">
-	<div class="row">
+	<div class="row" class:dim={$thetaParams.mouseTau}>
 		<span class="label">Re τ</span>
-		<input type="range" min="-1" max="1" step="0.01" bind:value={$thetaParams.tauRe} />
+		<input type="range" min="-1" max="1" step="0.01" bind:value={$thetaParams.tauRe}
+			disabled={$thetaParams.mouseTau} />
 		<span class="val">{fmt($thetaParams.tauRe)}</span>
 	</div>
-	<div class="row">
+	<div class="row" class:dim={$thetaParams.mouseTau}>
 		<span class="label">Im τ</span>
-		<input type="range" min="0.05" max="1.5" step="0.01" bind:value={$thetaParams.tauIm} />
+		<input type="range" min="0.05" max="1.5" step="0.01" bind:value={$thetaParams.tauIm}
+			disabled={$thetaParams.mouseTau} />
 		<span class="val">{fmt($thetaParams.tauIm)}</span>
 	</div>
 	<div class="row">
@@ -49,6 +51,11 @@
 			</button>
 		{/each}
 	</div>
+
+	<label class="toggle">
+		<input type="checkbox" bind:checked={$thetaParams.mouseTau} />
+		mouse&nbsp;→&nbsp;τ
+	</label>
 
 	<label class="toggle">
 		<input type="checkbox" checked={$thetaParams.mode > 0.5}
@@ -79,6 +86,10 @@
 		grid-template-columns: 34px 1fr 42px;
 		align-items: center;
 		gap: 8px;
+	}
+
+	.row.dim {
+		opacity: 0.4;
 	}
 
 	.label {

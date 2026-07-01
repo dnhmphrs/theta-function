@@ -17,7 +17,8 @@ export const thetaParams = writable({
 	centerIm: 0.0, // z-view centre (imag)
 	scale: 2.0, // z-view half-height
 	terms: 40, // series terms per side
-	mode: 1 // 0 = flat phase, 1 = with contours
+	mode: 1, // 0 = flat phase, 1 = with contours
+	mouseTau: true // when true the mouse drives τ live
 });
 
 // parked — used by the 3D/camera path in graphics/engine/_parked
