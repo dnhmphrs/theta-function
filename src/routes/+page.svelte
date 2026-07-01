@@ -12,7 +12,10 @@
 	<p>the theta function with characteristics</p>
 </header>
 
-<a class="ui theory-link" href="/theory">theory →</a>
+<nav class="ui nav">
+	<a href="/tower">tower →</a>
+	<a href="/theory">theory →</a>
+</nav>
 
 <Controls />
 
@@ -36,15 +39,20 @@
 		margin-top: 2px;
 	}
 
-	.theory-link {
+	.nav {
 		position: fixed;
 		top: var(--margin);
 		right: var(--margin);
+		display: flex;
+		gap: 1.4rem;
 		font-size: 13px;
+	}
+
+	.nav a {
 		opacity: 0.8;
 	}
 
-	.theory-link:hover {
+	.nav a:hover {
 		opacity: 1;
 	}
 
